@@ -9,6 +9,9 @@ git add .
 git commit -m "message"
 git push https://github.com/MaharajaOne/cbptdashboard.git
 
+
+git pull origin main
+
 //to know the all the tables in my schema
 SELECT table_name
 FROM information_schema.tables
