@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
     BarChart,
@@ -87,8 +87,8 @@ const ClientDelivery = () => {
     };
 
     const hexToRgba = (hex, opacity) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-      return result ? `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})` : null;
+        const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})` : null;
     };
 
     const renderChartWithTable = (
@@ -109,7 +109,7 @@ const ClientDelivery = () => {
             );
         }
 
-         const maxValue1 = Math.max(...data.map((item) => Number(item[dataKey1])), 0);
+        const maxValue1 = Math.max(...data.map((item) => Number(item[dataKey1])), 0);
         const yAxisMax1 = Math.ceil(maxValue1 * 1.2);
 
         const maxValue2 = Math.max(...data.map((item) => Number(item[dataKey2])), 0);
@@ -122,41 +122,47 @@ const ClientDelivery = () => {
         const tableStyle = {
             width: '100%',
             borderCollapse: 'collapse',
-            marginTop: '10px',
+            marginTop: '6px',
         };
         const thStyle = {
             border: '1px solid #ddd',
-            padding: '8px',
+            padding: '6px',
             textAlign: 'center',
         };
-         const tdStyle = {
+        const tdStyle = {
             border: '1px solid #ddd',
-             padding: '8px',
-             textAlign: 'center'
+            padding: '4px',
+            textAlign: 'left',
+            lineHeight: '1.4',
+            whiteSpace: 'nowrap',
+
         };
 
 
-         return (
-            <div className="row mb-4">
+        return (
+            <div className="row mb-4"
+                style={{ height: '400px' }}>
                 {/* Chart Section */}
-                <div className="col-8 border p-3 bg-light">
+                
+                <div className="col-8 border lg-7 p-3 bg-light">
                     <h5 className="text-center">{title}</h5>
-                     <ResponsiveContainer width="100%" height={400}>
+                    <ResponsiveContainer width="100%" height={300}>
                         <BarChart
                             data={data}
-                            margin={{ top: 50, right: 30, left: 20, bottom: 20 }}
+                            margin={{ top: 60, right: 30, left: 20, bottom: 70 }}
                         >
                             <Legend
-                                                            width="auto"
-                                                            wrapperStyle={{
-                                                             top: -5,
-                                                             right: 10,
-                                                             backgroundColor: '#f5f5f5',
-                                                             border: '1px solid #d5d5d5',
-                                                             borderRadius: 3,
-                                                             lineHeight: '40px',
-                                                            }}
-                                                        />
+                                width="auto"
+                                wrapperStyle={{
+                                    bottom: 0,
+                                    right: 10,
+                                    backgroundColor: '#f5f5f5',
+                                    border: '1px solid #d5d5d5',
+                                    borderRadius: 3,
+                                    lineHeight: '10px',
+                                }}
+                                formatter={(value) => <span style={{ color: 'black' }}>{value}</span>}
+                            />
                             <XAxis
                                 dataKey="month"
                                 label={{
@@ -189,13 +195,13 @@ const ClientDelivery = () => {
                                 domain={[0, yAxisMax2]}
                             />
                             <Tooltip />
-                            <Legend />
+                            
                             <Bar
                                 yAxisId="left"
                                 dataKey={dataKey1}
                                 fill={barColor1}
                                 name={name1}
-                             >
+                            >
                                 <LabelList dataKey={dataKey1} position="top" angle={-90} offset={15} />
                             </Bar>
                             {dataKey2 && (
@@ -204,8 +210,8 @@ const ClientDelivery = () => {
                                     dataKey={dataKey2}
                                     fill={barColor2}
                                     name={name2}
-                               >
-                                    <LabelList dataKey={dataKey2} position="top" angle={-90} offset={30}/>
+                                >
+                                    <LabelList dataKey={dataKey2} position="top" angle={-90} offset={30} />
                                 </Bar>
                             )}
                         </BarChart>
@@ -224,14 +230,20 @@ const ClientDelivery = () => {
                             </tr>
                         </thead>
                         <tbody>
-                           {data.map((row, index) => (
+                            {data.map((row, index) => (
                                 <tr
                                     key={index}
-                                    style={{ backgroundColor: index % 2 === 0 ? 'transparent' :  hexToRgba(barColor2, 0.1) }}
+                                    style={{ backgroundColor: index % 2 === 0 ? 'transparent' : hexToRgba("#2a623d", 0.1) }}
                                 >
                                     <td style={tdStyle}>{row.month}</td>
-                                    <td style={tdStyle}>{row[dataKey1]}</td>
-                                    {dataKey2 && <td style={tdStyle}>{row[dataKey2]}</td>}
+                                    <td style={{
+                        ...tdStyle,
+                        textAlign: 'right',
+                      }}>{row[dataKey1]}</td>
+                                    {dataKey2 && <td style={{
+                        ...tdStyle,
+                        textAlign: 'right',
+                      }}>{row[dataKey2]}</td>}
                                 </tr>
                             ))}
                         </tbody>
@@ -244,16 +256,17 @@ const ClientDelivery = () => {
     return (
         <div className="container mt-1">
             <h2 className="text-center mb-2">Clientwise Delivery Report</h2>
+
+            {/* Client Buttons */}
             <div className="row mb-4">
                 <div className="col-12">
-                    <div className="d-flex flex-wrap justify-content-center">
+                    <div className="d-flex flex-wrap justify-content-left">
                         {clients.map((client) => (
                             <button
                                 key={client}
-                                style={{ fontSize: '.8rem' }}
-                                className={`btn btn-outline-primary m-1 ${
-                                    selectedClient === client ? 'active' : ''
-                                }`}
+                                style={{ fontSize: '.75rem' }}
+                                className={`btn btn-outline-primary m-1 ${selectedClient === client ? 'active' : ''
+                                    }`}
                                 onClick={() => handleClientClick(client)}
                             >
                                 {client}
@@ -262,6 +275,8 @@ const ClientDelivery = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Selected Client */}
             {selectedClient && (
                 <div className="row">
                     <div className="col-12 text-center mb-4">
@@ -269,6 +284,8 @@ const ClientDelivery = () => {
                     </div>
                 </div>
             )}
+
+            {/* Chart and Table Sections */}
             <div className="row">
                 <div className="col-12">
                     {renderChartWithTable(
@@ -301,8 +318,8 @@ const ClientDelivery = () => {
                         'title_count',
                         'Number of Titles',
                         'sum_corrections',
-                         'Sum of Corrections',
-                       'No. of Titles',
+                        'Sum of Corrections',
+                        'No. of Titles',
                         'Corrections'
                     )}
                 </div>
@@ -311,16 +328,17 @@ const ClientDelivery = () => {
                         chartsData.OtherDeliveries,
                         `Other Deliveries Stage - ${selectedClient || 'All Clients'}`,
                         'title_count',
-                         'Number of Titles',
+                        'Number of Titles',
                         'sum_corrections',
-                         'Sum of Corrections',
-                       'No. of Titles',
+                        'Sum of Corrections',
+                        'No. of Titles',
                         'Corrections'
                     )}
                 </div>
             </div>
         </div>
     );
+
 };
 
 export default ClientDelivery;

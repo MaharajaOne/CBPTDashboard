@@ -28,3 +28,4 @@ FROM information_schema.columns
 WHERE table_schema = 'public'  -- Replace 'public' with your schema name if necessary
   AND table_name = 'monthlyreport';
 
+New

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Sidebar from './components/Sidebar';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import TimeSheet from './Pages/TimeSheet';
 import ClientDelivery from './Pages/ClientDelivery';
 import MonthDelivery from './Pages/MonthDelivery';
 import ClientOntime from './Pages/ClientOntime';
@@ -13,6 +12,7 @@ import MonthOntime from './Pages/MonthOntime';
 import Productivity from './Pages/Productivity'; 
 import Quality from './Pages/Quality'; // Import Quality component
 import TitleStatistics from './Pages/TitleStatistics';
+import PerformanceReport from './Pages/PerformanceReport';
 
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -22,8 +22,8 @@ const App = () => {
 
   const fetchSidebar = (role) => {
     const sidebarOptions = {
-      admin: ['Home', 'TimeSheet', 'Monthly Report', 'Title Statistics', 'Customers'],
-      user: ['Home', 'TimeSheet'],
+      admin: ['Home', 'Performance Report', 'Monthly Report', 'Title Statistics'],
+      user: ['Home', 'Performance Report'],
     };
     setSidebar(sidebarOptions[role] || []);
   };
@@ -54,7 +54,7 @@ const App = () => {
       const { token } = response.data;
       localStorage.setItem('token', token);
       setToken(token);
-      navigate('/home');
+      navigate('/');
     } catch (err) {
       console.error('Login failed:', err);
     }
@@ -80,7 +80,7 @@ const App = () => {
         <div style={{ flex: 1, padding: '20px' }}>
           <Routes>
             <Route path="/home" element={<h1>Home</h1>} />
-            <Route path="/timesheet" element={<TimeSheet empDetails={empDetails} />} />
+            <Route path="/performancereport" element={<PerformanceReport />} />
             <Route path="/monthlyreport/clientdelivery" element={<ClientDelivery />} />
             <Route path="/monthlyreport/monthdelivery" element={<MonthDelivery />} />
             <Route path="/monthlyreport/clientontime" element={<ClientOntime />} />
@@ -88,8 +88,8 @@ const App = () => {
             <Route path="/monthlyreport/quality" element={<Quality />} />
             <Route path="/monthlyreport/productivity" element={<Productivity />} />
             <Route path="/titlestatistics" element={<TitleStatistics />} />
-            <Route path="/customers" element={<h1>Customersa</h1>} />
-            <Route path="/" element={<Navigate to="/home" />} />
+            <Route path="/customers" element={<h1>Customers</h1>} />
+            <Route path="/" element={<Navigate to="/" />} />
           </Routes>
         </div>
       </div>

@@ -518,9 +518,9 @@ app.get('/month-delivery-data-filters', async (req, res) => {
 //Getting the QMRS data 
 app.get('/QMRS', async (req, res) => {
   try {
-    const client = await pool.connect();
+      const client = await pool.connect();
 
-    // Query to get month-wise feedback count grouped by publisher and function
+      // Query to get month-wise feedback count grouped by publisher, function, and feedback_type
     const monthWisePublisherFunctionQuery = `
     SELECT
         function,
@@ -537,76 +537,83 @@ app.get('/QMRS', async (req, res) => {
     `;
 
     // Query to get function-wise feedback count grouped by publisher
-    const functionWisePublisherQuery = `
+      const functionWisePublisherQuery = `
     SELECT
-        function,
-        publisher,
-        month_year,
-        COUNT(DISTINCT feedbackid) AS feedback_count
+      function,
+      publisher,
+      month_year,
+      COUNT(DISTINCT feedbackid) AS feedback_count
     FROM
         QMRS
     GROUP BY
-        function, publisher, month_year
+      function, publisher, month_year
     ORDER BY
         function, publisher, month_year;
     `;
 
-    const monthWisePublisherFunctionResult = await client.query(monthWisePublisherFunctionQuery);
-    const functionWisePublisherResult = await client.query(functionWisePublisherQuery);
 
-    // Format data for the first table
-    const formattedMonthWiseData = {};
-    monthWisePublisherFunctionResult.rows.forEach(row => {
-      const { function: functionName, publisher, month_year, feedback_count, feedback_type } = row;
+      const monthWisePublisherFunctionResult = await client.query(monthWisePublisherFunctionQuery);
+      const functionWisePublisherResult = await client.query(functionWisePublisherQuery);
 
-      const [month, year] = month_year.split('-'); // Split 'Mon-YYYY'
-      const formattedYear = year.length === 4 ? year : `20${year}`; // Ensure four-digit year format
+      // Format data for the first table
+      const formattedMonthWiseData = {};
+      monthWisePublisherFunctionResult.rows.forEach(row => {
+          const { function: functionName, publisher, month_year, feedback_count, feedback_type } = row;
 
-      if (!formattedMonthWiseData[formattedYear]) {
-        formattedMonthWiseData[formattedYear] = {};
-      }
-      if (!formattedMonthWiseData[formattedYear][publisher]) {
-        formattedMonthWiseData[formattedYear][publisher] = { functions: {}, internal: {}, external: {} };
-      }
-      if (!formattedMonthWiseData[formattedYear][publisher].functions[functionName]) {
-        formattedMonthWiseData[formattedYear][publisher].functions[functionName] = {};
-      }
+           const [month, year] = month_year.split('-'); // Split 'Mon-YYYY'
+          const formattedYear = year.length === 4 ? year : `20${year}`; // Ensure four-digit year format
 
-      formattedMonthWiseData[formattedYear][publisher][feedback_type][month] = feedback_count;
-      formattedMonthWiseData[formattedYear][publisher].functions[functionName][month] = feedback_count;
-    });
+          if (!formattedMonthWiseData[formattedYear]) {
+              formattedMonthWiseData[formattedYear] = {};
+          }
+          if (!formattedMonthWiseData[formattedYear][publisher]) {
+              formattedMonthWiseData[formattedYear][publisher] = { functions: {}, internal: {}, external: {} };
+          }
+           if (!formattedMonthWiseData[formattedYear][publisher].functions[functionName]) {
+              formattedMonthWiseData[formattedYear][publisher].functions[functionName] = {};
+          }
 
-    // Format data for the second table
-    const formattedFunctionWiseData = {};
-    functionWisePublisherResult.rows.forEach(row => {
-      const { function: functionName, publisher, month_year, feedback_count } = row;
 
-      const [month, year] = month_year.split('-');
-      const formattedYear = year.length === 4 ? year : `20${year}`; // Ensure four-digit year format
+          formattedMonthWiseData[formattedYear][publisher][feedback_type][month] = feedback_count;
+           formattedMonthWiseData[formattedYear][publisher].functions[functionName][month] = feedback_count;
 
-      if (!formattedFunctionWiseData[formattedYear]) {
-        formattedFunctionWiseData[formattedYear] = {};
-      }
-      if (!formattedFunctionWiseData[formattedYear][functionName]) {
-        formattedFunctionWiseData[formattedYear][functionName] = {};
-      }
-      if (!formattedFunctionWiseData[formattedYear][functionName][publisher]) {
-        formattedFunctionWiseData[formattedYear][functionName][publisher] = {};
-      }
-      formattedFunctionWiseData[formattedYear][functionName][publisher][month] = feedback_count;
-    });
 
-    client.release();
-    res.json({
-      monthWiseData: formattedMonthWiseData,
-      functionWiseData: formattedFunctionWiseData,
-    });
+
+      });
+
+       // Format data for the second table
+       const formattedFunctionWiseData = {};
+      functionWisePublisherResult.rows.forEach(row => {
+          const { function: functionName, publisher, month_year, feedback_count } = row;
+
+          const [month, year] = month_year.split('-');
+          const formattedYear = year.length === 4 ? year : `20${year}`; // Ensure four-digit year format
+
+           if (!formattedFunctionWiseData[formattedYear]) {
+              formattedFunctionWiseData[formattedYear] = {};
+          }
+          if (!formattedFunctionWiseData[formattedYear][functionName]) {
+              formattedFunctionWiseData[formattedYear][functionName] = {};
+          }
+          if (!formattedFunctionWiseData[formattedYear][functionName][publisher]) {
+              formattedFunctionWiseData[formattedYear][functionName][publisher] = {};
+          }
+          formattedFunctionWiseData[formattedYear][functionName][publisher][month] = feedback_count;
+      });
+
+
+      client.release();
+      res.json({
+          monthWiseData: formattedMonthWiseData,
+          functionWiseData: formattedFunctionWiseData,
+      });
   } catch (error) {
-    console.error('Error fetching QMRS data:', error);
-    res.status(500).json({ error: 'Failed to fetch data' });
+      console.error('Error fetching QMRS data:', error);
+      res.status(500).json({ error: 'Failed to fetch data' });
   }
 });
 
+//Title Statistics Client Dropdown
 app.get('/clients', async (req, res) => {
   try {
     const result = await pool.query('SELECT DISTINCT client FROM monthlyreport');
@@ -617,7 +624,7 @@ app.get('/clients', async (req, res) => {
   }
 });
 
-// Endpoint to get ititles by client
+//Title Statistics ititle Dropdown
 app.get('/ititles/:client', async (req, res) => {
   const client = req.params.client;
   try {
@@ -629,25 +636,176 @@ app.get('/ititles/:client', async (req, res) => {
   }
 });
 
-// Endpoint to get the monthly report based on client and ititle
+//Title Statistics report
 app.get('/monthlyreport', async (req, res) => {
-  const { client, ititle } = req.query;
-  try {
-    const result = await pool.query(`
-      SELECT client, division, ititle, stage, pages, corrections, 
-             TO_CHAR(received_date, 'YYYY-MM-DD') AS received_date, 
-             TO_CHAR(actual_date, 'YYYY-MM-DD') AS actual_date, 
-             TO_CHAR(proposed_date, 'YYYY-MM-DD') AS proposed_date, 
-             TO_CHAR(delivered_date, 'YYYY-MM-DD') AS delivered_date,
-             (delivered_date - received_date) AS working_days
-      FROM monthlyreport 
-      WHERE client = $1 AND ititle = $2
-    `, [client, ititle]);
+  const { client, ititle, month } = req.query;
+  console.log("monthlyreport req.query",req.query)
 
-    res.json(result.rows);
-  } catch (error) {
-    console.error(error);
-    res.status(500).send('Server error');
-  }
+
+    let query = `
+        SELECT 
+            client, division, ititle, stage, pages, corrections, 
+            TO_CHAR(received_date, 'YYYY-MM-DD') AS received_date, 
+            TO_CHAR(actual_date, 'YYYY-MM-DD') AS actual_date, 
+            TO_CHAR(proposed_date, 'YYYY-MM-DD') AS proposed_date, 
+            TO_CHAR(delivered_date, 'YYYY-MM-DD') AS delivered_date,
+             (
+                SELECT COUNT(day)
+                FROM   generate_series(received_date::date, delivered_date::date, '1 day'::interval) day
+                WHERE  EXTRACT(DOW FROM day) <> 0
+            ) AS working_days
+        FROM monthlyreport
+         WHERE 1=1
+    `;
+
+    const params = [];
+
+    if (client) {
+        query += ` AND Client = $${params.length + 1}`;
+        params.push(client);
+    }
+
+     if (month) {
+        query += ` AND TO_CHAR(delivered_date, 'MON') = $${params.length + 1}`;
+        params.push(month);
+    }
+
+    if (ititle) {
+        query += ` AND Ititle = $${params.length + 1}`;
+        params.push(ititle);
+    }
+
+    console.log("query", query);
+    console.log("params", params);
+
+  try {
+        const result = await pool.query(query, params);
+      console.log("result.rows", result.rows)
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server error');
+    }
 });
 
+
+app.get('/fp-delivery-report', async (req, res) => {
+  const { client, month } = req.query;
+  console.log("/fp-delivery-report req.query", req.query);
+
+  let query = `
+      SELECT
+          CASE
+              WHEN subquery.avg_working_days >= 0 AND subquery.avg_working_days <= 5 THEN '0-5'
+              WHEN subquery.avg_working_days >= 6 AND subquery.avg_working_days <= 7 THEN '6-7'
+              WHEN subquery.avg_working_days >= 8 AND subquery.avg_working_days <= 10 THEN '8-10'
+              WHEN subquery.avg_working_days >= 11 AND subquery.avg_working_days <= 14 THEN '11-14'
+              WHEN subquery.avg_working_days >= 15 AND subquery.avg_working_days <= 21 THEN '15-21'
+              WHEN subquery.avg_working_days > 21 THEN '>21'
+              ELSE 'Unknown'
+          END AS working_days_category,
+           COUNT(DISTINCT subquery.Ititle) AS fp_title_count,
+          TO_CHAR(subquery.delivered_date, 'MON') AS month,
+          subquery.Client AS client
+      FROM (
+          SELECT
+               (
+                  SELECT COUNT(day) -1
+                  FROM   generate_series(received_date::date, delivered_date::date, '1 day'::interval) day
+                  WHERE  EXTRACT(DOW FROM day) <> 0
+              )  AS avg_working_days,
+              delivered_date,
+              Client,
+              Stage,
+              Ititle,
+              received_date
+          FROM MonthlyReport
+          WHERE 1=1
+      `;
+
+  const params = [];
+
+  if (client) {
+      query += ` AND Client = $${params.length + 1}`;
+      params.push(client);
+  }
+
+  if (month) {
+      query += ` AND TO_CHAR(delivered_date, 'MON') = $${params.length + 1}`;
+      params.push(month);
+  }
+
+  query += `   ) AS subquery
+      WHERE  subquery.Stage IN ('FP', '01_FPP', 'FPP')
+      GROUP BY  working_days_category,TO_CHAR(subquery.delivered_date, 'MON'), subquery.Client
+      ORDER BY
+          CASE
+              WHEN  CASE
+                      WHEN subquery.avg_working_days >= 0 AND subquery.avg_working_days <= 5 THEN '0-5'
+                      WHEN subquery.avg_working_days >= 6 AND subquery.avg_working_days <= 7 THEN '6-7'
+                      WHEN subquery.avg_working_days >= 8 AND subquery.avg_working_days <= 10 THEN '8-10'
+                      WHEN subquery.avg_working_days >= 11 AND subquery.avg_working_days <= 14 THEN '11-14'
+                      WHEN subquery.avg_working_days >= 15 AND subquery.avg_working_days <= 21 THEN '15-21'
+                      WHEN subquery.avg_working_days > 21 THEN '>21'
+                      ELSE 'Unknown'
+                  END = '0-5' THEN 1
+              WHEN  CASE
+                      WHEN subquery.avg_working_days >= 0 AND subquery.avg_working_days <= 5 THEN '0-5'
+                      WHEN subquery.avg_working_days >= 6 AND subquery.avg_working_days <= 7 THEN '6-7'
+                      WHEN subquery.avg_working_days >= 8 AND subquery.avg_working_days <= 10 THEN '8-10'
+                      WHEN subquery.avg_working_days >= 11 AND subquery.avg_working_days <= 14 THEN '11-14'
+                      WHEN subquery.avg_working_days >= 15 AND subquery.avg_working_days <= 21 THEN '15-21'
+                      WHEN subquery.avg_working_days > 21 THEN '>21'
+                      ELSE 'Unknown'
+                  END = '6-7' THEN 2
+              WHEN  CASE
+                      WHEN subquery.avg_working_days >= 0 AND subquery.avg_working_days <= 5 THEN '0-5'
+                      WHEN subquery.avg_working_days >= 6 AND subquery.avg_working_days <= 7 THEN '6-7'
+                      WHEN subquery.avg_working_days >= 8 AND subquery.avg_working_days <= 10 THEN '8-10'
+                      WHEN subquery.avg_working_days >= 11 AND subquery.avg_working_days <= 14 THEN '11-14'
+                      WHEN subquery.avg_working_days >= 15 AND subquery.avg_working_days <= 21 THEN '15-21'
+                      WHEN subquery.avg_working_days > 21 THEN '>21'
+                      ELSE 'Unknown'
+                  END = '8-10' THEN 3
+              WHEN  CASE
+                      WHEN subquery.avg_working_days >= 0 AND subquery.avg_working_days <= 5 THEN '0-5'
+                      WHEN subquery.avg_working_days >= 6 AND subquery.avg_working_days <= 7 THEN '6-7'
+                      WHEN subquery.avg_working_days >= 8 AND subquery.avg_working_days <= 10 THEN '8-10'
+                      WHEN subquery.avg_working_days >= 11 AND subquery.avg_working_days <= 14 THEN '11-14'
+                      WHEN subquery.avg_working_days >= 15 AND subquery.avg_working_days <= 21 THEN '15-21'
+                      WHEN subquery.avg_working_days > 21 THEN '>21'
+                      ELSE 'Unknown'
+                  END = '11-14' THEN 4
+              WHEN  CASE
+                      WHEN subquery.avg_working_days >= 0 AND subquery.avg_working_days <= 5 THEN '0-5'
+                      WHEN subquery.avg_working_days >= 6 AND subquery.avg_working_days <= 7 THEN '6-7'
+                      WHEN subquery.avg_working_days >= 8 AND subquery.avg_working_days <= 10 THEN '8-10'
+                      WHEN subquery.avg_working_days >= 11 AND subquery.avg_working_days <= 14 THEN '11-14'
+                      WHEN subquery.avg_working_days >= 15 AND subquery.avg_working_days <= 21 THEN '15-21'
+                      WHEN subquery.avg_working_days > 21 THEN '>21'
+                      ELSE 'Unknown'
+                  END = '15-21' THEN 5
+              WHEN  CASE
+                      WHEN subquery.avg_working_days >= 0 AND subquery.avg_working_days <= 5 THEN '0-5'
+                      WHEN subquery.avg_working_days >= 6 AND subquery.avg_working_days <= 7 THEN '6-7'
+                      WHEN subquery.avg_working_days >= 8 AND subquery.avg_working_days <= 10 THEN '8-10'
+                      WHEN subquery.avg_working_days >= 11 AND subquery.avg_working_days <= 14 THEN '11-14'
+                      WHEN subquery.avg_working_days >= 15 AND subquery.avg_working_days <= 21 THEN '15-21'
+                      WHEN subquery.avg_working_days > 21 THEN '>21'
+                      ELSE 'Unknown'
+                  END = '>21' THEN 6
+              ELSE 7
+          END
+      `;
+  console.log("query", query);
+  console.log("params", params);
+
+  try {
+      const result = await pool.query(query, params);
+      console.log("result.rows", result.rows);
+      res.json(result.rows);
+  } catch (error) {
+      console.error('Database query error:', error);
+      res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+});

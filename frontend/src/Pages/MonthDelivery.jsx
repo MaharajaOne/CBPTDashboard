@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
     BarChart,
@@ -103,8 +103,12 @@ const MonthDelivery = () => {
         const maxValue1 = Math.max(...sortedData.map((item) => Number(item[dataKey1])), 0);
         const yAxisMax1 = Math.ceil(maxValue1 * 1.2);
 
-        const maxValue2 = Math.max(...sortedData.map((item) => Number(item[dataKey2])), 0);
-        const yAxisMax2 = Math.ceil(maxValue2 * 1.2);
+          //Conditionally determine if the chart needs 2 Y axis values
+        let hasTwoYAxis = dataKey2 && dataKey2.length > 0;
+        let yAxisMax2 = null;
+
+        if(hasTwoYAxis)
+            yAxisMax2 = Math.ceil(Math.max(...sortedData.map((item) => Number(item[dataKey2])), 0) * 1.2);
 
 
         const barColor1 = "#8884d8";
@@ -113,42 +117,44 @@ const MonthDelivery = () => {
          const tableStyle = {
             width: '100%',
             borderCollapse: 'collapse',
-            marginTop: '10px',
+            marginTop: '6px',
         };
         const thStyle = {
             border: '1px solid #ddd',
-            padding: '8px',
+            padding: '6px',
             textAlign: 'center',
         };
          const tdStyle = {
             border: '1px solid #ddd',
-             padding: '8px',
-             textAlign: 'center',
+             padding: '4px',
+             textAlign: 'left',
+            lineHeight: '1',
+            whiteSpace: 'nowrap',
         };
 
 
         return (
-            <div className="row mb-4">
+             <div className="row mb-4"     style={{ height: '400px' }}>
                 {/* Chart Section */}
-                 <div className="col-8 border p-3 bg-light">
+                <div className="col-8 border lg-7 p-3 bg-light">
                     <h5 className="text-center">{title}</h5>
-                    <ResponsiveContainer width="100%" height={400}>
+                    <ResponsiveContainer width="100%" height={300}>
                         <BarChart
                             data={sortedData}
-                            margin={{ top: 50, right: 30, left: 20, bottom: 20 }}
+                            margin={{ top: 60, right: 30, left: 20, bottom: 70 }}
                         >
-                           <Legend
+                            <Legend
                                 width="auto"
                                 wrapperStyle={{
-                                 top: -5,
-                                 right: 10,
-                                 backgroundColor: '#f5f5f5',
-                                 border: '1px solid #d5d5d5',
-                                 borderRadius: 3,
-                                 lineHeight: '40px',
+                                    bottom: 0,
+                                    right: 10,
+                                    backgroundColor: '#f5f5f5',
+                                    border: '1px solid #d5d5d5',
+                                    borderRadius: 3,
+                                    lineHeight: '10px',
                                 }}
-                            />
-                            <XAxis
+                                formatter={(value) => <span style={{ color: 'black' }}>{value}</span>}
+                            />                            <XAxis
                                 dataKey="client"
                                 label={{
                                     value: 'Client',
@@ -168,17 +174,19 @@ const MonthDelivery = () => {
                                 }}
                                 domain={[0, yAxisMax1]}
                             />
-                            <YAxis
+                           {hasTwoYAxis && (
+                               <YAxis
                                 yAxisId="right"
                                 orientation="right"
                                 label={{
-                                    value: yAxisLabel2,
-                                    angle: 90,
-                                    position: 'insideRight',
-                                    offset: -5,
-                                }}
-                                domain={[0, yAxisMax2]}
+                                     value: yAxisLabel2,
+                                     angle: 90,
+                                     position: 'insideRight',
+                                     offset: -5,
+                                 }}
+                                 domain={[0, yAxisMax2]}
                             />
+                           )}
                             <Tooltip />
 
                             <Bar
@@ -189,7 +197,7 @@ const MonthDelivery = () => {
                             >
                                 <LabelList dataKey={dataKey1} position="top" angle={-90} offset={15} />
                             </Bar>
-                            {dataKey2 && (
+                             {hasTwoYAxis && (
                                 <Bar
                                     yAxisId="right"
                                     dataKey={dataKey2}
@@ -204,7 +212,7 @@ const MonthDelivery = () => {
                 </div>
 
                 {/* Table Section */}
-                 <div className="col-4 border p-3 bg-light">
+                <div className="col-4 border p-3 bg-light">
                     <h6 className="text-center">Data Table</h6>
                       <table style={tableStyle}>
                         <thead>
@@ -214,16 +222,22 @@ const MonthDelivery = () => {
                                 {dataKey2 && <th style={thStyle}>{name2}</th>}
                             </tr>
                         </thead>
-                        
-                                    <tbody>
-                                    {data.map((row, index) => (
-                                         <tr
-                                             key={index}
-                                             style={{ backgroundColor: index % 2 === 0 ? 'transparent' :  hexToRgba(barColor2, 0.1) }}
+
+                        <tbody>
+                             {sortedData.map((row, index) => (
+                                 <tr
+                                    key={index}
+                                    style={{ backgroundColor: index % 2 === 0 ? 'transparent' :  hexToRgba("#2a623d", 0.1) }}
                                 >
                                     <td style={tdStyle}>{row.client}</td>
-                                    <td style={tdStyle}>{row[dataKey1]}</td>
-                                    {dataKey2 && <td style={tdStyle}>{row[dataKey2]}</td>}
+                                    <td style={{
+                        ...tdStyle,
+                        textAlign: 'right',
+                      }}>{row[dataKey1]}</td>
+                                    {dataKey2 && <td style={{
+                        ...tdStyle,
+                        textAlign: 'right',
+                      }}>{row[dataKey2]}</td>}
                                 </tr>
                             ))}
                         </tbody>
