@@ -94,35 +94,26 @@ app.get('/employee-details', authenticate, async (req, res) => {
 
 //Client wise Monthly delivery data
 app.get('/client-delivery-data', async (req, res) => {
-  const { client, month, stage } = req.query;
+  const { client, startMonth, endMonth, stage } = req.query;
+console.log("client-delivery-data req.query", req.query)
 
   let query = `
-      SELECT 
-          Client, 
-          CASE 
-              WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
-              WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
-              WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
-              WHEN Stage IN ('DB', 'Sample', 'Refinals', 'CP', 'Revises 2', 'Epub correx', 'Revises 3', 
-                             'FP PM correx', 'Revises 4', 'Index', 'Recastoff', 'Revises 5', 
-                             'Revises 6', 'Revises 7', 'Revises 8', 'Revises 9', '11_Vouchers', 
-                             '04_Revises II', '06_Index', '02_FP_PM_Corrections', '09_Scatters I', 
-                             '07_Tables', '25_Revised Index', '11_Rev Vouchers', '08_PM_Corrections', 
-                             '13_Re-finals', '05_Revises III', '16_Other', '06_Revises IV', 
-                             'Voucher Correcs', 'Index Correcs', 'Rev Correcs', 'FP_PM correcs', 
-                             'Rev II', 'Vouchers', 'Appendix', 'Reprint', '03_Re-Finals', 
-                             '02_Final correcs', '15_WEBPDF', '00_FM & RWS', '26_Rev. WebPDF') 
-              THEN '04_Other Deliveries'
-              ELSE '04_Other Deliveries'
-          END AS normalized_stage,
-          COUNT(DISTINCT Ititle) AS title_count,
-          SUM(CASE WHEN Pages ~ '^[0-9]+$' THEN CAST(Pages AS NUMERIC) ELSE 0 END) AS sum_pages, 
-          SUM(CASE WHEN Corrections ~ '^[0-9]+$' THEN CAST(Corrections AS NUMERIC) ELSE 0 END) AS sum_corrections,
-           TO_CHAR(delivered_date, 'YYYY-MM') AS month_sort,
-          TO_CHAR(delivered_date, 'MON') AS month
-      FROM MonthlyReport
-      WHERE 1 = 1
-  `;
+    SELECT 
+        Client, 
+        CASE 
+            WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
+            WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
+            WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
+            ELSE '04_Other Deliveries'
+        END AS normalized_stage,
+        COUNT(Ititle) AS title_count,
+        SUM(CASE WHEN Pages ~ '^[0-9]+$' THEN CAST(Pages AS NUMERIC) ELSE 0 END) AS sum_pages, 
+        SUM(CASE WHEN Corrections ~ '^[0-9]+$' THEN CAST(Corrections AS NUMERIC) ELSE 0 END) AS sum_corrections,
+         TO_CHAR(delivered_date, 'YYYY-MM') AS month_sort,
+        TO_CHAR(delivered_date, 'MON') AS month
+    FROM MonthlyReport
+    WHERE 1 = 1
+`;
 
   const params = [];
 
@@ -131,30 +122,50 @@ app.get('/client-delivery-data', async (req, res) => {
       params.push(client);
   }
 
-  if (month) {
-       query += ` AND TO_CHAR(delivered_date, 'MON') = $${params.length + 1}`;
-       params.push(month);
+  if (startMonth && endMonth) {
+      query += ` AND delivered_date BETWEEN  $${params.length + 1}::DATE AND $${params.length + 2}::DATE`;
+       params.push(startMonth + '-01');
+        params.push(endMonth + '-01');
+
   }
 
+ 
   if (stage) {
-      query += ` AND CASE 
-                    WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
-                    WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
-                    WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
-                    ELSE '04_Other Deliveries'
-                END = $${params.length + 1}`;
-      params.push(stage);
-  }
+    let stageValues = [];
+    switch (stage) {
+        case '01_FPP':
+            stageValues = ['FP', '01_FPP', 'FPP'];
+            break;
+        case '03_Finals':
+            stageValues = ['Finals', '12_Final', '01_Finals'];
+            break;
+        case '02_Revises-1':
+            stageValues = ['Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I'];
+            break;
+        default:
+            stageValues = null; // Any other values fall under '04_Other Deliveries'
+    }
 
-  query += ` GROUP BY Client, normalized_stage, month_sort, month ORDER BY month_sort`;
+    if (stageValues) {
+        query += ` AND Stage = ANY($${params.length + 1})`;
+        params.push(stageValues);
+    } else {
+        query += ` AND Stage NOT IN ('FP', '01_FPP', 'FPP', 'Finals', '12_Final', '01_Finals', 'Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I')`;
+    }
+}
 
-  try {
-      const result = await pool.query(query, params);
-      res.json(result.rows);
-  } catch (error) {
-      console.error('Database query error:', error);
-      res.status(500).json({ error: 'Internal Server Error', details: error.message });
-  }
+query += `
+    GROUP BY Client, normalized_stage, month_sort, month
+    ORDER BY month_sort
+`;
+
+try {
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+} catch (error) {
+    console.error('Database query error:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+}
 });
 //Client wise Monthly delivery data
 app.get('/client-delivery-data-filters', async (req, res) => {
@@ -197,22 +208,12 @@ app.get('/month-delivery-data', async (req, res) => {
               WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
               WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
               WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
-              WHEN Stage IN ('DB', 'Sample', 'Refinals', 'CP', 'Revises 2', 'Epub correx', 'Revises 3', 
-                             'FP PM correx', 'Revises 4', 'Index', 'Recastoff', 'Revises 5', 
-                             'Revises 6', 'Revises 7', 'Revises 8', 'Revises 9', '11_Vouchers', 
-                             '04_Revises II', '06_Index', '02_FP_PM_Corrections', '09_Scatters I', 
-                             '07_Tables', '25_Revised Index', '11_Rev Vouchers', '08_PM_Corrections', 
-                             '13_Re-finals', '05_Revises III', '16_Other', '06_Revises IV', 
-                             'Voucher Correcs', 'Index Correcs', 'Rev Correcs', 'FP_PM correcs', 
-                             'Rev II', 'Vouchers', 'Appendix', 'Reprint', '03_Re-Finals', 
-                             '02_Final correcs', '15_WEBPDF', '00_FM & RWS', '26_Rev. WebPDF') 
-              THEN '04_Other Deliveries'
               ELSE '04_Other Deliveries'
           END AS normalized_stage,
-          COUNT(DISTINCT Ititle) AS title_count,
+          COUNT(Ititle) AS title_count,
           SUM(CASE WHEN Pages ~ '^[0-9]+$' THEN CAST(Pages AS NUMERIC) ELSE 0 END) AS sum_pages, 
           SUM(CASE WHEN Corrections ~ '^[0-9]+$' THEN CAST(Corrections AS NUMERIC) ELSE 0 END) AS sum_corrections,
-           TO_CHAR(delivered_date, 'YYYY-MM') AS month_sort,
+          TO_CHAR(delivered_date, 'YYYY-MM') AS month_sort,
           TO_CHAR(delivered_date, 'MON') AS month
       FROM MonthlyReport
       WHERE 1 = 1
@@ -226,29 +227,46 @@ app.get('/month-delivery-data', async (req, res) => {
   }
 
   if (month) {
-       query += ` AND TO_CHAR(delivered_date, 'MON') = $${params.length + 1}`;
+       query += ` AND TO_CHAR(delivered_date, 'YYYY-MM') = $${params.length + 1}`;
        params.push(month);
   }
 
   if (stage) {
-      query += ` AND CASE 
-                    WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
-                    WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
-                    WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
-                    ELSE '04_Other Deliveries'
-                END = $${params.length + 1}`;
-      params.push(stage);
-  }
+    let stageValues = [];
+    switch (stage) {
+        case '01_FPP':
+            stageValues = ['FP', '01_FPP', 'FPP'];
+            break;
+        case '03_Finals':
+            stageValues = ['Finals', '12_Final', '01_Finals'];
+            break;
+        case '02_Revises-1':
+            stageValues = ['Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I'];
+            break;
+        default:
+            stageValues = null; // Any other values fall under '04_Other Deliveries'
+    }
 
-  query += ` GROUP BY Client, normalized_stage, month_sort, month ORDER BY month_sort`;
+    if (stageValues) {
+        query += ` AND Stage = ANY($${params.length + 1})`;
+        params.push(stageValues);
+    } else {
+        query += ` AND Stage NOT IN ('FP', '01_FPP', 'FPP', 'Finals', '12_Final', '01_Finals', 'Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I')`;
+    }
+}
 
-  try {
-      const result = await pool.query(query, params);
-      res.json(result.rows);
-  } catch (error) {
-      console.error('Database query error:', error);
-      res.status(500).json({ error: 'Internal Server Error', details: error.message });
-  }
+query += `
+    GROUP BY Client, normalized_stage, month_sort, month
+    ORDER BY month_sort
+`;
+
+try {
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+} catch (error) {
+    console.error('Database query error:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+}
 });
 //Month wise Monthly delivery data
 app.get('/month-delivery-data-filters', async (req, res) => {
@@ -282,124 +300,62 @@ app.get('/month-delivery-data-filters', async (req, res) => {
   });
 
 //Clientwise Ontime Data
-  app.get('/client-ontime-data', async (req, res) => {
-    const { client, month, stage } = req.query;
-  
-      let query = `
-          SELECT
-              Client,
-              CASE
-                  WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
-                  WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
-                  WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
-                  WHEN Stage IN ('DB', 'Sample', 'Refinals', 'CP', 'Revises 2', 'Epub correx', 'Revises 3',
-                                  'FP PM correx', 'Revises 4', 'Index', 'Recastoff', 'Revises 5',
-                                  'Revises 6', 'Revises 7', 'Revises 8', 'Revises 9', '11_Vouchers',
-                                  '04_Revises II', '06_Index', '02_FP_PM_Corrections', '09_Scatters I',
-                                  '07_Tables', '25_Revised Index', '11_Rev Vouchers', '08_PM_Corrections',
-                                  '13_Re-finals', '05_Revises III', '16_Other', '06_Revises IV',
-                                  'Voucher Correcs', 'Index Correcs', 'Rev Correcs', 'FP_PM correcs',
-                                  'Rev II', 'Vouchers', 'Appendix', 'Reprint', '03_Re-Finals',
-                                  '02_Final correcs', '15_WEBPDF', '00_FM & RWS', '26_Rev. WebPDF')
-                  THEN '04_Other Deliveries'
-                  ELSE '04_Other Deliveries'
-              END AS normalized_stage,
-              TO_CHAR(delivered_date, 'YYYY-MM') AS month_sort,
-              TO_CHAR(delivered_date, 'MON') AS month,
-             delivered_date,
-              actual_date,
-             proposed_date,
-              Ititle
-          FROM MonthlyReport
-          WHERE 1 = 1
-      `;
-  
-  
-    const params = [];
-  
-    if (client) {
-      query += ` AND Client = $${params.length + 1}`;
-      params.push(client);
+app.get('/client-ontime-data', async (req, res) => {
+  const { client, startMonth, endMonth, stage } = req.query;
+
+    let query = `
+        SELECT
+            Client,
+            CASE
+                WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
+                WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
+                WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
+                ELSE '04_Other Deliveries'
+            END AS normalized_stage,
+            TO_CHAR(delivered_date, 'YYYY-MM') AS month_sort,
+            TO_CHAR(delivered_date, 'MON') AS month,
+            COUNT(CASE WHEN delivered_date <= actual_date THEN 1 END) AS met_original_titles,
+            COUNT(CASE WHEN delivered_date > actual_date AND delivered_date <= proposed_date THEN 1 END) AS met_revised_titles,
+            COUNT(CASE WHEN delivered_date > proposed_date THEN 1 END) AS late_titles
+        FROM MonthlyReport
+        WHERE 1 = 1
+    `;
+
+
+  const params = [];
+
+  if (client) {
+    query += ` AND Client = $${params.length + 1}`;
+    params.push(client);
+  }
+
+ if (startMonth && endMonth) {
+       query += ` AND delivered_date BETWEEN $${params.length + 1}::DATE AND $${params.length + 2}::DATE`;
+        params.push(startMonth + '-01');
+        params.push(endMonth + '-01');
     }
-  
-    if (month) {
-      query += ` AND TO_CHAR(delivered_date, 'MON') = $${params.length + 1}`;
-      params.push(month);
-    }
-  
-    if (stage) {
-        query += ` AND CASE
-                      WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
-                      WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
-                      WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
-                      ELSE '04_Other Deliveries'
-                  END = $${params.length + 1}`;
-        params.push(stage);
-    }
-  
-    query += ` ORDER BY month_sort`;
-  
-    try {
-      const result = await pool.query(query, params);
-  
-      const processedRows = result.rows.map(row => {
-          const deliveredDate = new Date(row.delivered_date);
-          const actualDate = new Date(row.actual_date);
-          const proposedDate = new Date(row.proposed_date);
-  
-          let status;
-  
-          if (deliveredDate <= actualDate) {
-              status = "Instances that met original date";
-          } else if (deliveredDate <= proposedDate) {
-              status = "met revised date";
-          }else {
-              status = "delivered late";
-          }
-            return {
-                ...row,
-                status,
-            };
-  
-      });
-  
-       const groupedData = processedRows.reduce((acc, row) => {
-            const key = `${row.Client}-${row.normalized_stage}-${row.month_sort}-${row.month}`;
-  
-             if (!acc[key]) {
-                 acc[key] = {
-                     Client: row.Client,
-                     normalized_stage: row.normalized_stage,
-                     month_sort: row.month_sort,
-                     month: row.month,
-                     late_titles: 0,
-                     met_revised_titles: 0,
-                     met_original_titles:0
-                 };
-             }
-  
-              if(row.status ==="Instances that met original date"){
-                  acc[key].met_original_titles++;
-              } else if (row.status === "met revised date") {
-                  acc[key].met_revised_titles++;
-              }
-              else{
-                  acc[key].late_titles++;
-              }
-  
-  
-          return acc;
-       }, {});
-  
-       const finalResult = Object.values(groupedData);
-  
-      res.json(finalResult);
-  
-    } catch (error) {
-      console.error('Database query error:', error);
-      res.status(500).json({ error: 'Internal Server Error', details: error.message });
-    }
-  });
+
+  if (stage) {
+      query += ` AND CASE
+                    WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
+                    WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
+                    WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
+                    ELSE '04_Other Deliveries'
+                END = $${params.length + 1}`;
+      params.push(stage);
+  }
+
+  query += ` GROUP BY Client, normalized_stage, month_sort, month ORDER BY month_sort`;
+
+  try {
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+
+  } catch (error) {
+    console.error('Database query error:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+});
   //Clientwise Ontime Data
   app.get('/client-ontime-data-filters', async (req, res) => {
       try {
@@ -431,58 +387,60 @@ app.get('/month-delivery-data-filters', async (req, res) => {
   });
   
 //Monthwise Ontime Data
-  app.get('/month-ontime-data', async (req, res) => {
-    const { client, month, stage } = req.query;
-  
-    let query = `
-        SELECT
-            Client,
-            CASE
-                WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
-                WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
-                WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
-                ELSE '04_Other Deliveries'
-            END AS normalized_stage,
-            TO_CHAR(delivered_date, 'YYYY-MM') AS month_sort,
-            COUNT(CASE WHEN delivered_date <= actual_date THEN 1 END) AS met_original_titles,
-            COUNT(CASE WHEN delivered_date > actual_date AND delivered_date <= proposed_date THEN 1 END) AS met_revised_titles,
-            COUNT(CASE WHEN delivered_date > proposed_date THEN 1 END) AS late_titles
-        FROM MonthlyReport
-        WHERE 1 = 1
-    `;
-  
-    const params = [];
-  
-    if (client) {
-      query += ` AND Client = $${params.length + 1}`;
-      params.push(client);
-    }
-  
-    if (month) {
-      query += ` AND TO_CHAR(delivered_date, 'MON') = $${params.length + 1}`;
-      params.push(month.toUpperCase());
-    }
-  
-    if (stage) {
-      query += ` AND CASE
-                    WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
-                    WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
-                    WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
-                    ELSE '04_Other Deliveries'
-                END = $${params.length + 1}`;
-      params.push(stage);
-    }
-  
-    query += ` GROUP BY Client, normalized_stage, month_sort ORDER BY Client, month_sort`;
-  
-    try {
-      const result = await pool.query(query, params);
-      res.json(result.rows);
-    } catch (error) {
-      console.error('Database query error:', error);
-      res.status(500).json({ error: 'Internal Server Error', details: error.message });
-    }
-  });
+app.get('/month-ontime-data', async (req, res) => {
+  const { client, month, stage } = req.query;
+
+  let query = `
+      SELECT
+          Client,
+          CASE
+              WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
+              WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
+              WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
+              ELSE '04_Other Deliveries'
+          END AS normalized_stage,
+          TO_CHAR(delivered_date, 'YYYY-MM') AS month_sort,
+          COUNT(CASE WHEN delivered_date <= actual_date THEN 1 END) AS met_original_titles,
+          COUNT(CASE WHEN delivered_date > actual_date AND delivered_date <= proposed_date THEN 1 END) AS met_revised_titles,
+          COUNT(CASE WHEN delivered_date > proposed_date THEN 1 END) AS late_titles
+      FROM MonthlyReport
+      WHERE 1 = 1
+  `;
+
+  const params = [];
+
+  if (client) {
+    query += ` AND Client = $${params.length + 1}`;
+    params.push(client);
+  }
+
+  if (month) {
+    query += ` AND TO_CHAR(delivered_date, 'YYYY-MM') = $${params.length + 1}`;
+     params.push(month);
+  }
+
+
+  if (stage) {
+    query += ` AND CASE
+                  WHEN Stage IN ('FP', '01_FPP', 'FPP') THEN '01_FPP'
+                  WHEN Stage IN ('Finals', '12_Final', '01_Finals') THEN '03_Finals'
+                  WHEN Stage IN ('Revises', '03_Revises I', 'Rev I', 'Revises 1', 'Revises I') THEN '02_Revises-1'
+                  ELSE '04_Other Deliveries'
+              END = $${params.length + 1}`;
+    params.push(stage);
+  }
+
+  query += ` GROUP BY Client, normalized_stage, month_sort ORDER BY Client, month_sort`;
+
+  try {
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Database query error:', error);
+    res.status(500).json({ error: 'Internal Server Error', details: error.message });
+  }
+});
+
   //Monthwise Ontime Data
   app.get('/month-ontime-data-filters', async (req, res) => {
     try {
@@ -639,55 +597,55 @@ app.get('/ititles/:client', async (req, res) => {
 //Title Statistics report
 app.get('/monthlyreport', async (req, res) => {
   const { client, ititle, month } = req.query;
-  console.log("monthlyreport req.query",req.query)
+  console.log("monthlyreport req.query", req.query);
 
-
-    let query = `
+  let query = `
         SELECT 
             client, division, ititle, stage, pages, corrections, 
             TO_CHAR(received_date, 'YYYY-MM-DD') AS received_date, 
             TO_CHAR(actual_date, 'YYYY-MM-DD') AS actual_date, 
             TO_CHAR(proposed_date, 'YYYY-MM-DD') AS proposed_date, 
             TO_CHAR(delivered_date, 'YYYY-MM-DD') AS delivered_date,
-             (
+            CASE WHEN delivered_date >= received_date THEN
+            (
                 SELECT COUNT(day)
-                FROM   generate_series(received_date::date, delivered_date::date, '1 day'::interval) day
+                FROM   generate_series(received_date::date, delivered_date::date - interval '1 day', '1 day'::interval) day
                 WHERE  EXTRACT(DOW FROM day) <> 0
-            ) AS working_days
+            )
+           ELSE 0 END AS working_days
         FROM monthlyreport
          WHERE 1=1
     `;
 
-    const params = [];
+  const params = [];
 
-    if (client) {
-        query += ` AND Client = $${params.length + 1}`;
-        params.push(client);
-    }
+  if (client) {
+    query += ` AND Client = $${params.length + 1}`;
+    params.push(client);
+  }
 
-     if (month) {
-        query += ` AND TO_CHAR(delivered_date, 'MON') = $${params.length + 1}`;
-        params.push(month);
-    }
+  if (month) {
+    query += ` AND TO_CHAR(delivered_date, 'MON') = $${params.length + 1}`;
+    params.push(month.toUpperCase());
+  }
 
-    if (ititle) {
-        query += ` AND Ititle = $${params.length + 1}`;
-        params.push(ititle);
-    }
+  if (ititle) {
+    query += ` AND Ititle = $${params.length + 1}`;
+    params.push(ititle);
+  }
 
-    console.log("query", query);
-    console.log("params", params);
+  console.log("query", query);
+  console.log("params", params);
 
   try {
-        const result = await pool.query(query, params);
-      console.log("result.rows", result.rows)
-        res.json(result.rows);
-    } catch (error) {
-        console.error(error);
-        res.status(500).send('Server error');
-    }
+    const result = await pool.query(query, params);
+    console.log("result.rows", result.rows);
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('Server error');
+  }
 });
-
 
 app.get('/fp-delivery-report', async (req, res) => {
   const { client, month } = req.query;
@@ -808,4 +766,50 @@ app.get('/fp-delivery-report', async (req, res) => {
       console.error('Database query error:', error);
       res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
+});
+app.get('/employees', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT emp_code, emp_name, reporting_to, email, role, department, designation, client, user_status, replacement, reason_for_relieving, address, primary_contact_no, secondary_contact_no, location FROM employees');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching employees:', error);
+    res.status(500).json({ error: 'Failed to fetch employees' });
+  }
+});
+// POST (Create) a new employee
+app.post('/employees', async (req, res) => {
+    const newEmployee = req.body;
+    const { emp_code, emp_name, reporting_to, email, role, department, designation, client, user_status, replacement, reason_for_relieving, address, primary_contact_no, secondary_contact_no, location } = newEmployee;
+
+    try {
+        const query = 'INSERT INTO employees (emp_code, emp_name, reporting_to, email, role, department, designation, client, user_status, replacement, reason_for_relieving, address, primary_contact_no, secondary_contact_no, location) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)';
+        const values = [emp_code, emp_name, reporting_to, email, role, department, designation, client, user_status, replacement, reason_for_relieving, address, primary_contact_no, secondary_contact_no, location];
+        await pool.query(query, values);
+      res.status(201).json({ message: 'Employee created successfully' });
+    } catch (error) {
+      console.error('Error creating employee:', error);
+      res.status(500).json({ error: 'Failed to create employee' });
+    }
+});
+
+// PUT (Update) an existing employee
+app.put('/employees/:emp_code', async (req, res) => {
+  const empCode = req.params.emp_code;
+  const updatedEmployee = req.body;
+  const { emp_name, reporting_to, email, role, department, designation, client, user_status, replacement, reason_for_relieving, address, primary_contact_no, secondary_contact_no, location } = updatedEmployee;
+
+  try {
+    const query = 'UPDATE employees SET emp_name = $1, reporting_to = $2, email = $3, role = $4, department = $5, designation = $6, client = $7, user_status = $8, replacement = $9, reason_for_relieving = $10, address = $11, primary_contact_no = $12, secondary_contact_no = $13, location = $14 WHERE emp_code = $15';
+    const values = [emp_name, reporting_to, email, role, department, designation, client, user_status, replacement, reason_for_relieving, address, primary_contact_no, secondary_contact_no, location, empCode];
+      const result = await pool.query(query, values);
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Employee not found' });
+    }
+
+      res.json({ message: 'Employee updated successfully' });
+    } catch (error) {
+      console.error('Error updating employee:', error);
+      res.status(500).json({ error: 'Failed to update employee' });
+    }
 });

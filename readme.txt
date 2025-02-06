@@ -29,3 +29,15 @@ WHERE table_schema = 'public'  -- Replace 'public' with your schema name if nece
   AND table_name = 'monthlyreport';
 
 New
+=ifs(J23171<=H23171,"Instances that met original date", J23171<=I23171, "met revised date",J23171>=I23171,"delivered late")
+
+G= Received
+date
+(MM/DD)	
+H= Actual date	
+I= Proposed date	
+J= Delivered date (MM/DD)
+
+delivered_date<=actual_date = met original date
+delivered_date<=proposed_Date= metreviseddate
+delivereddate>=proposeddate= delviered late

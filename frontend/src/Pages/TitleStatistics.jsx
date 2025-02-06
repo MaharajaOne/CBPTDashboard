@@ -9,6 +9,7 @@ const TitleStatistics = () => {
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedItitle, setSelectedItitle] = useState(null);
   const [monthlyReports, setMonthlyReports] = useState([]);
+  const [totalDays, setTotalDays] = useState(0);
 
   // Fetch clients
   useEffect(() => {
@@ -60,6 +61,15 @@ const TitleStatistics = () => {
             }
           });
           setMonthlyReports(response.data);
+          // Calculate total days by summing the digits of working days
+           const totalDays = response.data.reduce((sum, report) => {
+               const workingDaysSum = String(report.working_days)
+                .split('')
+                .reduce((acc, digit) => acc + parseInt(digit, 10), 0);
+             return sum + workingDaysSum;
+           }, 0);
+
+          setTotalDays(totalDays);
         } catch (error) {
           console.error('Error fetching monthly reports:', error);
         }
@@ -97,42 +107,47 @@ const TitleStatistics = () => {
       </div>
 
       {monthlyReports.length > 0 && (
-        <div className="table-responsive mt-4">
-          <table className="table table-bordered table-striped">
-            <thead className="table-dark">
-              <tr>
-                <th>Client</th>
-                <th>Division</th>
-                <th>Ititle</th>
-                <th>Stage</th>
-                <th>Pages</th>
-                <th>Corrections</th>
-                <th>Received Date</th>
-                <th>Actual Date</th>
-                <th>Proposed Date</th>
-                <th>Delivered Date</th>
-                <th>Working Days</th>
-              </tr>
-            </thead>
-            <tbody>
-              {monthlyReports.map((report, index) => (
-                <tr key={index}>
-                  <td>{report.client}</td>
-                  <td>{report.division}</td>
-                  <td>{report.ititle}</td>
-                  <td>{report.stage}</td>
-                  <td>{report.pages}</td>
-                  <td>{report.corrections}</td>
-                  <td>{report.received_date}</td>
-                  <td>{report.actual_date}</td>
-                  <td>{report.proposed_date}</td>
-                  <td>{report.delivered_date}</td>
-                  <td>{report.working_days}</td>
+        <>
+          <div className="mb-3">
+            <h5>Total no of days spend on {selectedItitle?.label}: {totalDays} days</h5>
+          </div>
+          <div className="table-responsive mt-4">
+            <table className="table table-bordered table-striped">
+              <thead className="table-dark">
+                <tr>
+                  <th>Client</th>
+                  <th>Division</th>
+                  <th>Ititle</th>
+                  <th>Stage</th>
+                  <th>Pages</th>
+                  <th>Corrections</th>
+                  <th>Received Date</th>
+                  <th>Actual Date</th>
+                  <th>Proposed Date</th>
+                  <th>Delivered Date</th>
+                  <th>Working Days</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {monthlyReports.map((report, index) => (
+                  <tr key={index}>
+                    <td>{report.client}</td>
+                    <td>{report.division}</td>
+                    <td>{report.ititle}</td>
+                    <td>{report.stage}</td>
+                    <td>{report.pages}</td>
+                    <td>{report.corrections}</td>
+                    <td>{report.received_date}</td>
+                    <td>{report.actual_date}</td>
+                    <td>{report.proposed_date}</td>
+                    <td>{report.delivered_date}</td>
+                    <td>{report.working_days}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

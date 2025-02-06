@@ -9,10 +9,11 @@ import ClientDelivery from './Pages/ClientDelivery';
 import MonthDelivery from './Pages/MonthDelivery';
 import ClientOntime from './Pages/ClientOntime';
 import MonthOntime from './Pages/MonthOntime';
-import Productivity from './Pages/Productivity'; 
 import Quality from './Pages/Quality'; // Import Quality component
 import TitleStatistics from './Pages/TitleStatistics';
 import PerformanceReport from './Pages/PerformanceReport';
+import EmployeeList from './Pages/EmployeeList';
+import EmployeeDistribution from './Pages/EmployeeDistribution';
 
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -22,8 +23,8 @@ const App = () => {
 
   const fetchSidebar = (role) => {
     const sidebarOptions = {
-      admin: ['Home', 'Performance Report', 'Monthly Report', 'Title Statistics'],
-      user: ['Home', 'Performance Report'],
+      admin: ['Home', 'CBPT Employee List', 'CBPT Employee Distribution', 'CBPT Performance Report', 'Title Statistics', "Producitivity", 'Monthly Report',],
+      user: ['Home', 'CBPT Performance Report'],
     };
     setSidebar(sidebarOptions[role] || []);
   };
@@ -74,21 +75,25 @@ const App = () => {
 
   return (
     <div style={{ display: 'flex' }}>
-      <Sidebar sidebarItems={sidebar} />
+      <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh' }}>
-        <Navbar empName={empDetails?.name || 'Loading...'} onLogout={handleLogout} />
+        <Navbar empName={empDetails?.name || 'Loading....'} onLogout={handleLogout} />
         <div style={{ flex: 1, padding: '20px' }}>
           <Routes>
             <Route path="/home" element={<h1>Home</h1>} />
-            <Route path="/performancereport" element={<PerformanceReport />} />
+            <Route path="/cbptperformancereport" element={<PerformanceReport />} />
             <Route path="/monthlyreport/clientdelivery" element={<ClientDelivery />} />
             <Route path="/monthlyreport/monthdelivery" element={<MonthDelivery />} />
             <Route path="/monthlyreport/clientontime" element={<ClientOntime />} />
             <Route path="/monthlyreport/monthontime" element={<MonthOntime />} />
             <Route path="/monthlyreport/quality" element={<Quality />} />
-            <Route path="/monthlyreport/productivity" element={<Productivity />} />
+            <Route path="/productivity/employeedailyproductivity" element={<ClientDelivery />} />
+            <Route path="/productivity/projectdailyproductivity" element={<MonthDelivery />} />
+            <Route path="/productivity/employeemonthlyproductivity" element={<ClientOntime />} />
+            <Route path="/productivity/projectmonthlyproductivity" element={<MonthOntime />} />
+            <Route path="/cbptemployeelist" element={<EmployeeList />} />
+            <Route path="/cbptemployeedistribution" element={<EmployeeDistribution />} />
             <Route path="/titlestatistics" element={<TitleStatistics />} />
-            <Route path="/customers" element={<h1>Customers</h1>} />
             <Route path="/" element={<Navigate to="/" />} />
           </Routes>
         </div>

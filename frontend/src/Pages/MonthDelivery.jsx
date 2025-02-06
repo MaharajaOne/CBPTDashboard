@@ -1,4 +1,4 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
     BarChart,
@@ -8,44 +8,37 @@ import {
     Tooltip,
     ResponsiveContainer,
     Legend,
+    LabelList,
 } from 'recharts';
-import { LabelList } from 'recharts';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const MonthDelivery = () => {
-    const [months, setMonths] = useState([]);
-    const [selectedMonth, setSelectedMonth] = useState(() => {
-        return localStorage.getItem('selectedMonth') || '';
-    });
+    const componentRef = useRef(null);
     const [chartsData, setChartsData] = useState({
         FPP: [],
         Finals: [],
         Revises: [],
         OtherDeliveries: [],
     });
+    const [selectedMonth, setSelectedMonth] = useState(() => {
+        const storedMonth = localStorage.getItem('selectedMonth');
+        return storedMonth ? storedMonth : `${new Date().getFullYear()}-01`;
+    });
+    const [years] = useState(() => {
+         const currentYear = new Date().getFullYear();
+        return [currentYear - 2, currentYear - 1, currentYear];
+     });
+
 
     useEffect(() => {
-        fetchMonths();
-        if (selectedMonth) {
-            fetchChartData(selectedMonth);
-        } else {
-            fetchChartData();
-        }
+         fetchChartData(selectedMonth);
     }, [selectedMonth]);
 
-    useEffect(() => {
+
+     useEffect(() => {
         localStorage.setItem('selectedMonth', selectedMonth);
     }, [selectedMonth]);
 
-    const fetchMonths = async () => {
-        try {
-            const response = await axios.get('http://localhost:5000/month-delivery-data-filters');
-
-            setMonths(response.data.months);
-        } catch (error) {
-            console.error('Error fetching months:', error);
-        }
-    };
 
     const fetchChartData = async (month = '') => {
         try {
@@ -68,17 +61,66 @@ const MonthDelivery = () => {
             setChartsData({ FPP: fppResponse.data, Finals: finalsResponse.data, Revises: revisesResponse.data, OtherDeliveries: otherDeliveriesResponse.data });
         } catch (error) {
             console.error('Error fetching chart data:', error);
+            setChartsData({
+                FPP: [],
+                Finals: [],
+                Revises: [],
+                OtherDeliveries: [],
+            });
         }
     };
 
-    const handleMonthClick = (month) => {
-        setSelectedMonth(month);
-    };
 
     const hexToRgba = (hex, opacity) => {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
         return result ? `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})` : null;
     };
+
+      const renderMonthDropdown = (selectedMonth, setSelectedMonth, label) => {
+        const months = [
+            'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+        const selectedYear = selectedMonth ? selectedMonth.split('-')[0] : new Date().getFullYear();
+        const selectedMon = selectedMonth ? selectedMonth.split('-')[1] : null;
+
+        return (
+            <div className="d-flex align-items-center mb-3">
+                <label className="form-label me-2 mt-1">{label} Month</label>
+                <div className="me-2">
+                    <select
+                        className="form-select"
+                        value={selectedYear}
+                        onChange={(e) => {
+                            const newMonth = e.target.value + (selectedMon ? `-${selectedMon}` : '');
+                            setSelectedMonth(newMonth);
+                        }}
+                        style={{ width: 'auto' }}
+                    >
+                        {years.map((year) => (
+                            <option key={year} value={year}>{year}</option>
+                        ))}
+                    </select>
+                </div>
+
+                    <select
+                        className="form-select"
+                        value={selectedMon}
+                        onChange={(e) => {
+                            const newMonth = selectedYear + `-${e.target.value}`;
+                            setSelectedMonth(newMonth);
+                        }}
+                         style={{ width: 'auto' }}
+                    >
+                        <option value="">Select Month</option>
+                        {months.map((mon, index) => (
+                            <option key={index} value={(index + 1).toString().padStart(2, '0')}>{mon}</option>
+                        ))}
+                    </select>
+            </div>
+        );
+    }
+
 
     const renderChartWithTable = (
         data,
@@ -132,11 +174,14 @@ const MonthDelivery = () => {
             whiteSpace: 'nowrap',
         };
 
+        // Dynamically calculate chart height based on data length (minimum 300)
+        // const chartHeight = Math.max(300, sortedData.length * 30);  //Adjust 30 if necessary
 
         return (
-             <div className="row mb-4"     style={{ height: '400px' }}>
+             <div className="row mb-4"
+                style={{ height: '400px' }}>
                 {/* Chart Section */}
-                <div className="col-8 border lg-7 p-3 bg-light">
+                <div className="col-8 border p-3 bg-light">
                     <h5 className="text-center">{title}</h5>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart
@@ -212,7 +257,7 @@ const MonthDelivery = () => {
                 </div>
 
                 {/* Table Section */}
-                <div className="col-4 border p-3 bg-light">
+                <div className="col-4 border p-3 bg-light" style={{ overflow: 'auto', maxHeight: '400px' }}>
                     <h6 className="text-center">Data Table</h6>
                       <table style={tableStyle}>
                         <thead>
@@ -249,25 +294,15 @@ const MonthDelivery = () => {
 
 
     return (
-        <div className="container mt-1">
+        <div className="container mt-1" ref={componentRef}>
             <h2 className="text-center mb-2">Monthwise Delivery Report</h2>
-            <div className="row mb-4">
-                <div className="col-md-12">
-                    <div className="d-flex flex-wrap">
-                        {months.map((month) => (
-                            <button
-                                key={month}
-                                style={{ fontSize: '.60rem' }}
-                                className={`btn btn-outline-primary m-1 ${selectedMonth === month ? 'active' : ''
-                                    }`}
-                                onClick={() => handleMonthClick(month)}
-                            >
-                                {month}
-                            </button>
-                        ))}
-                    </div>
+             <div className="row">
+                 <div className='col-md-12'>
+                      {renderMonthDropdown(selectedMonth, setSelectedMonth, 'Select')}
                 </div>
-            </div>
+
+              </div>
+
             {selectedMonth && (
                 <div className="row">
                     <div className="col-md-12 text-center mb-4">
