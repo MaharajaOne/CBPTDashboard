@@ -102,19 +102,19 @@ const Sidebar = () => {
             <div id="monthly-report-collapse">
               <Nav className="flex-column mt-2">
                 <Nav.Item>
-                  <Nav.Link as={Link} to="/monthlyreport/clientdelivery">Client Delivery</Nav.Link>
+                  <Nav.Link as={Link} to="/monthlyreport/clientdelivery" className={`px-3 py-2 ${isActive('/monthlyreport/clientdelivery') ? 'bg-primary text-white' : 'text-dark'}`}>Client Delivery</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link as={Link} to="/monthlyreport/monthdelivery">Month Delivery</Nav.Link>
+                  <Nav.Link as={Link} to="/monthlyreport/monthdelivery" className={`px-3 py-2 ${isActive('/monthlyreport/monthdelivery') ? 'bg-primary text-white' : 'text-dark'}`}>Month Delivery</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link as={Link} to="/monthlyreport/clientontime">Client On-Time</Nav.Link>
+                  <Nav.Link as={Link} to="/monthlyreport/clientontime" className={`px-3 py-2 ${isActive('/monthlyreport/clientontime') ? 'bg-primary text-white' : 'text-dark'}`}>Client On-Time</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link as={Link} to="/monthlyreport/monthontime">Month On-Time</Nav.Link>
+                  <Nav.Link as={Link} to="/monthlyreport/monthontime" className={`px-3 py-2 ${isActive('/monthlyreport/monthontime') ? 'bg-primary text-white' : 'text-dark'}`}>Month On-Time</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link as={Link} to="/monthlyreport/quality">Quality</Nav.Link>
+                  <Nav.Link as={Link} to="/monthlyreport/quality" className={`px-3 py-2 ${isActive('/monthlyreport/quality') ? 'bg-primary text-white' : 'text-dark'}`}>Quality</Nav.Link>
                 </Nav.Item>
               </Nav>
             </div>
@@ -145,16 +145,16 @@ const Sidebar = () => {
             <div id="productivity-collapse">
               <Nav className="flex-column mt-2">
                 <Nav.Item>
-                  <Nav.Link as={Link} to="/productivity/employeedailyproductivity">Employee Daily Productivity</Nav.Link>
+                  <Nav.Link as={Link} to="/productivity/employeedailyproductivity" className={`px-3 py-2 ${isActive('/productivity/employeedailyproductivity') ? 'bg-primary text-white' : 'text-dark'}`}>Employee Daily Productivity</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link as={Link} to="/productivity/projectdailyproductivity">Project Daily Productivity</Nav.Link>
+                  <Nav.Link as={Link} to="/productivity/projectdailyproductivity" className={`px-3 py-2 ${isActive('/productivity/projectdailyproductivity') ? 'bg-primary text-white' : 'text-dark'}`}>Project Daily Productivity</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link as={Link} to="/productivity/employeemonthlyproductivity">Employee Monthly Productivity</Nav.Link>
+                  <Nav.Link as={Link} to="/productivity/employeemonthlyproductivity" className={`px-3 py-2 ${isActive('/productivity/employeemonthlyproductivity') ? 'bg-primary text-white' : 'text-dark'}`}>Employee Monthly Productivity</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link as={Link} to="/productivity/projectmonthlyproductivity">Project Monthly Productivity</Nav.Link>
+                  <Nav.Link as={Link} to="/productivity/projectmonthlyproductivity" className={`px-3 py-2 ${isActive('/productivity/projectmonthlyproductivity') ? 'bg-primary text-white' : 'text-dark'}`}>Project Monthly Productivity</Nav.Link>
                 </Nav.Item>
               </Nav>
             </div>

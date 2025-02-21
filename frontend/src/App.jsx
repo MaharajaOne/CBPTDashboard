@@ -14,6 +14,8 @@ import TitleStatistics from './Pages/TitleStatistics';
 import PerformanceReport from './Pages/PerformanceReport';
 import EmployeeList from './Pages/EmployeeList';
 import EmployeeDistribution from './Pages/EmployeeDistribution';
+import ProductivityEmployee from './Pages/ProductivityEmployee';
+import ProductivityProject from './Pages/ProductivityProject';
 
 const App = () => {
   const [token, setToken] = useState(localStorage.getItem('token'));
@@ -87,8 +89,8 @@ const App = () => {
             <Route path="/monthlyreport/clientontime" element={<ClientOntime />} />
             <Route path="/monthlyreport/monthontime" element={<MonthOntime />} />
             <Route path="/monthlyreport/quality" element={<Quality />} />
-            <Route path="/productivity/employeedailyproductivity" element={<ClientDelivery />} />
-            <Route path="/productivity/projectdailyproductivity" element={<MonthDelivery />} />
+            <Route path="/productivity/employeedailyproductivity" element={<ProductivityEmployee />} />
+            <Route path="/productivity/projectdailyproductivity" element={<ProductivityProject />} />
             <Route path="/productivity/employeemonthlyproductivity" element={<ClientOntime />} />
             <Route path="/productivity/projectmonthlyproductivity" element={<MonthOntime />} />
             <Route path="/cbptemployeelist" element={<EmployeeList />} />

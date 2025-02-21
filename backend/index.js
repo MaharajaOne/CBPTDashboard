@@ -767,6 +767,8 @@ app.get('/fp-delivery-report', async (req, res) => {
       res.status(500).json({ error: 'Internal Server Error', details: error.message });
   }
 });
+
+
 app.get('/employees', async (req, res) => {
   try {
     const result = await pool.query('SELECT emp_code, emp_name, reporting_to, email, role, department, designation, client, user_status, replacement, reason_for_relieving, address, primary_contact_no, secondary_contact_no, location FROM employees');
@@ -776,6 +778,7 @@ app.get('/employees', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch employees' });
   }
 });
+
 // POST (Create) a new employee
 app.post('/employees', async (req, res) => {
     const newEmployee = req.body;
@@ -812,4 +815,58 @@ app.put('/employees/:emp_code', async (req, res) => {
       console.error('Error updating employee:', error);
       res.status(500).json({ error: 'Failed to update employee' });
     }
+});
+
+
+// Fetch aggregated productivity data
+app.get("/api/productivity", async (req, res) => {
+  const { emp_code } = req.query;
+  try {
+    const result = await pool.query(`
+      SELECT date, 
+             SUM(time_in_hour) AS working_hours, 
+             SUM(productivity) AS productivity_hours 
+      FROM productivity
+      WHERE emp_no = $1
+      GROUP BY date
+      ORDER BY date;
+    `, [emp_code]);
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching productivity data:", err);
+    res.status(500).send("Server Error");
+  }
+});
+
+// New endpoint for getting clients from the 'work_for' table
+app.get("/work_for", async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT DISTINCT client 
+      FROM work_for
+      ORDER BY client;
+    `);
+    
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error fetching work_for data:", err);
+    res.status(500).send("Server Error");
+  }
+});
+
+app.post("/api/reset-productivity", async (req, res) => {
+  const { emp_code, date } = req.body;
+  try {
+    await pool.query(`
+      UPDATE productivity 
+      SET time_in_hour = 0, productivity = 0
+      WHERE emp_no = $1 AND date = $2;
+    `, [emp_code, date]);
+
+    res.status(200).json({ message: "Productivity reset successfully" });
+  } catch (err) {
+    console.error("Error resetting productivity:", err);
+    res.status(500).send("Server Error");
+  }
 });

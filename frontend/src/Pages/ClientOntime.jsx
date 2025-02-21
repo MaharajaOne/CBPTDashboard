@@ -201,7 +201,7 @@ const ClientOntime = () => {
                 {/* Chart Section */}
                 <div className="col-12 border p-3 bg-light">
                     <h5 className="text-center">{title}</h5>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={250}>
                         <BarChart
                             data={enhancedData}
                             margin={{ top: 30, right: 30, left: 20, bottom: 70 }}
